@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <title>TodoJS list</title>
+  </head>
+
+  <body>
+    <div id="loader-container" class="loader" class="text-center">
+      <span
+        class="spinner-border spinner-border-bg"
+        role="status"
+        aria-hidden="true"></span>
+      Loading...
+    </div>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-8">
+          <h1 class="header text-center">TODO List</h1>
+          <div class="input-group mb-3">
+            <input
+              id="todo-input"
+              type="text"
+              class="form-control"
+              maxlength="255" />
+            <button
+              id="todo-add-button"
+              class="btn btn-outline-secondary"
+              type="button">
+              Add
+            </button>
+          </div>
+          <div id="alert-message-container" class="alert alert-danger fade" role="alert">
+          </div>
+          <div class="row justify-content-center">
+            <div id="list-container">
+              <label for="all-tasks-done">
+                <input
+                  id="all-tasks-done"
+                  type="checkbox"
+                  class="state-all-tasks" />
+                Check all todos
+              </label>
+              <ul id="todo-list-ul" class="list-group"></ul>
+            </div>
+            <div id="filter-btns-container" class="btn-group" role="group">
+              <button id="all" class="btn btn-outline-primary active">
+                All
+              </button>
+              <button id="active" class="btn btn-outline-primary">
+                Active
+              </button>
+              <button id="completed" class="btn btn-outline-primary">
+                Completed
+              </button>
+            </div>
+            <nav>
+              <ul
+                id="pagination-container"
+                class="pagination pagination-sm"></ul>
+            </nav>
+          </div>
+          <div class="row justify-content-center">
+            <div class="col-4">
+              <button
+                id="delete-all-done"
+                type="button"
+                class="btn btn-danger delete-all-done">
+                Delete all done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/script.js"></script>
+  </body>
+</html>
