@@ -3,10 +3,12 @@ Description=todo-server
 After=multi-user.target
 
 [Service]
-User=root
-Group=root
+User=qsyoma
+Group=qsyoma
 Type=simple
 Restart=always
+WorkingDirectory=/opt/Todo-back-main
+EnvironmentFile=/opt/backend.env
 ExecStart=/opt/venv/bin/python3 /opt/manage.py runserver 0.0.0.0:8000
 
 [Install]
