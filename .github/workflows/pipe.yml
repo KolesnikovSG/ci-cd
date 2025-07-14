@@ -135,10 +135,11 @@ jobs:
          Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
   
         ssh ${VPS_USER}@${VPS_HOST} "
-          set -e
+          set -ex
           cd /opt/Todo-back-main
-          [ ! -d /opt/venv ] && python3 -m venv /opt/venv
+          python3 -m venv --clear /opt/venv
           source /opt/venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
           python3 manage.py migrate
           python3 manage.py collectstatic --noinput
