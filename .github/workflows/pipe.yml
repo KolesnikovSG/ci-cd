@@ -144,5 +144,6 @@ jobs:
           pip install -r requirements.txt
           python3 manage.py migrate
           python3 manage.py collectstatic --noinput
+          mv todo.service /etc/systemd/system/
           sudo systemctl restart todo.service
         "
