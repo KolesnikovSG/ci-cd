@@ -90,7 +90,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Download backend artifact
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: backend-deps
@@ -119,31 +119,35 @@ jobs:
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
         ssh ${VPS_USER}@${VPS_HOST} "
-          set -e
+          set -ex
           sudo apt-get update
-          sudo apt-get install -y python3 python3-venv python3-pip
+          sudo apt-get install -y python3 python3-venv python3-pip gunicorn
           sudo mkdir -p /opt/{Todo-back-main,Todo-front-main,venv}
           sudo chown -R ${VPS_USER}:${VPS_USER} /opt/*
-          sudo chmod 755 /opt/venv
-          python3 --version
-          pip3 --version
         "
+        
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
-         Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
-         
+          Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
+          
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
-         Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
-  
+          Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
+        
         ssh ${VPS_USER}@${VPS_HOST} "
           set -ex
           cd /opt/Todo-back-main
+          
           python3 -m venv --clear /opt/venv
           source /opt/venv/bin/activate
-          mkdir -p staticfiles
+          
           pip install --upgrade pip
           pip install -r requirements.txt
-          python3 manage.py migrate
-          python3 manage.py collectstatic --noinput
-          sudo mv todo.service /etc/systemd/system/
+          
+          python manage.py migrate
+          python manage.py collectstatic --noinput
+          
+          sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
+          sudo chmod 644 /etc/systemd/system/todo.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable todo.service
           sudo systemctl restart todo.service
         "
