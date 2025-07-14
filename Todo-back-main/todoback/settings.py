@@ -33,7 +33,7 @@ STATICFILES_DIRS = []
 
 # Application definition
 
-INSTALLED_A[PPS = [
+INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
