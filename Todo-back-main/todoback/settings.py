@@ -19,9 +19,21 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['82.202.139.79','localhost']
 
+CSRF_TRUSTED_ORIGINS = ['http://82.202.139.79']
+
+STATIC_URL = '/staticfiles/'
+
+STATIC_ROOT = '/opt/Todo-back-main/staticfiles'
+
+USE_X_FORWARDED_HOST = True
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+STATICFILES_DIRS = []
+
 # Application definition
 
-INSTALLED_APPS = [
+INSTALLED_A[PPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,6 +57,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    'http://82.202.139.79',
     'http://127.0.0.1:5500',
     'https://t3.academy.dunice-testing.com'
 ]
@@ -124,9 +137,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
 
