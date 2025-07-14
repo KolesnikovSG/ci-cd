@@ -139,6 +139,7 @@ jobs:
           cd /opt/Todo-back-main
           python3 -m venv --clear /opt/venv
           source /opt/venv/bin/activate
+          mkdir -p staticfiles
           pip install --upgrade pip
           pip install -r requirements.txt
           python3 manage.py migrate
