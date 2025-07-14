@@ -119,9 +119,14 @@ jobs:
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
         ssh ${VPS_USER}@${VPS_HOST} "
-          sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-venv python3-pip
+          sudo mkdir -p /opt/{Todo-back-main,Todo-front-main}
           sudo chown -R ${VPS_USER}:${VPS_USER} /opt/Todo-*
-         "
+          python3 --version
+          pip3 --version
+        "
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
          Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
          
@@ -131,7 +136,7 @@ jobs:
         ssh ${VPS_USER}@${VPS_HOST} "
           set -e
           cd /opt/Todo-back-main
-          [ ! -d /opt/venv ] && python -m venv /opt/venv
+          [ ! -d /opt/venv ] && python3 -m venv /opt/venv
           source /opt/venv/bin/activate
           pip install -r requirements.txt
           python3 manage.py migrate
