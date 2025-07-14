@@ -84,7 +84,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     
     steps:
@@ -106,25 +106,43 @@ jobs:
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+    - name: Add VPS host to known_hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
     
     - name: Deploy to VPS
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        # Sync backend
-        rsync -avz --delete Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
-        
-        # Sync frontend
-        rsync -avz --delete Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
-        
-        # SSH commands to setup backend
-        ssh ${VPS_USER}@${VPS_HOST} << EOF
+        ssh ${VPS_USER}@${VPS_HOST} "
           set -e
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-venv python3-pip
+          sudo mkdir -p /opt/{Todo-back-main,Todo-front-main,venv}
+          sudo chown -R ${VPS_USER}:${VPS_USER} /opt/*
+          sudo chmod 755 /opt/venv
+          python3 --version
+          pip3 --version
+        "
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+         Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
+         
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+         Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
+  
+        ssh ${VPS_USER}@${VPS_HOST} "
+          set -ex
           cd /opt/Todo-back-main
+          python3 -m venv --clear /opt/venv
           source /opt/venv/bin/activate
+          mkdir -p staticfiles
+          pip install --upgrade pip
           pip install -r requirements.txt
-          python manage.py migrate
-          python manage.py collectstatic --noinput
+          python3 manage.py migrate
+          python3 manage.py collectstatic --noinput
           sudo systemctl restart todo-server
-        EOF
+        "
