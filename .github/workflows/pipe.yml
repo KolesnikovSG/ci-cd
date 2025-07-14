@@ -118,19 +118,23 @@ jobs:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        # Sync backend
-        rsync -avz --delete Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
-        
-        # Sync frontend
-        rsync -avz --delete Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
-        
-        # SSH commands to setup backend
-        ssh ${VPS_USER}@${VPS_HOST} << EOF
+        ssh ${VPS_USER}@${VPS_HOST} "
+          sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main
+          sudo chown -R ${VPS_USER}:${VPS_USER} /opt/Todo-*
+         "
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+         Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
+         
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
+         Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
+  
+        ssh ${VPS_USER}@${VPS_HOST} "
           set -e
           cd /opt/Todo-back-main
+          [ ! -d /opt/venv ] && python -m venv /opt/venv
           source /opt/venv/bin/activate
           pip install -r requirements.txt
           python manage.py migrate
           python manage.py collectstatic --noinput
           sudo systemctl restart todo-server
-        EOF
+        "
