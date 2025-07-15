@@ -131,14 +131,12 @@ jobs:
   
     - name: Upload artifacts
       run: |
-        # Upload using rsync directly to target directories
         rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
           Todo-back-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-back-main/
         
         rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
           Todo-front-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-front-main/
         
-        # Upload venv archive to user's home
         scp -o StrictHostKeyChecking=no venv.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/venv.tar.gz
   
     - name: Deploy application
@@ -146,16 +144,13 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
         set -ex
         # Extract virtual environment
-        tar xzf ~/venv.tar.gz -C /opt/
+        sudo tar xzf ~/venv.tar.gz -C /opt/
         rm ~/venv.tar.gz
         
-        # Install dependencies and migrate
         cd /opt/Todo-back-main
         source /opt/venv/bin/activate
-        pip install -r requirements.txt
         python3 manage.py migrate
         
-        # Setup systemd service
         sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
         sudo systemctl daemon-reload
         sudo systemctl enable todo.service
