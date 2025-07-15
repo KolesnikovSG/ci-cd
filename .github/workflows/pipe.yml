@@ -134,7 +134,7 @@ jobs:
           
           cd /opt/Todo-back-main
           source /opt/venv/bin/activate
-          python manage.py migrate
+          python3 manage.py migrate
           
           sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
           sudo systemctl daemon-reload
