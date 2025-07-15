@@ -103,21 +103,19 @@ jobs:
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
-
+  
     - name: Deploy to VPS
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-
+        # Создаем .ssh и добавляем ключ хоста в known_hosts
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
-      
-        ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ~/temp_deploy && chmod 700 ~/temp_deploy"
-        
-        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
-        
+  
+        # Копируем файлы на сервер
         scp -o StrictHostKeyChecking=no venv.tar.gz ${VPS_USER}@${VPS_HOST}:~/temp_deploy/
        
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
@@ -126,7 +124,8 @@ jobs:
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
         
-        ssh ${VPS_USER}@${VPS_HOST} "
+        # Выполняем команды на сервере
+        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
           set -ex
           sudo mkdir -p /opt/venv
           sudo tar xzf ~/temp_deploy/venv.tar.gz -C /opt/
@@ -142,5 +141,3 @@ jobs:
           sudo systemctl enable todo.service
           sudo systemctl restart todo.service
         "
-              
-        
