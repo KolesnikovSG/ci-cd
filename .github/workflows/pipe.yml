@@ -112,7 +112,7 @@ jobs:
       
         ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ~/temp_deploy && chmod 700 ~/temp_deploy"
         
-        ssh-keyscan -H -t rsa,ecdsa,ed25519 ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
         
         scp -o StrictHostKeyChecking=no venv.tar.gz ${VPS_USER}@${VPS_HOST}:~/temp_deploy/
