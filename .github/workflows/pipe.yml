@@ -109,21 +109,24 @@ jobs:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        # Развертывание кода и виртуального окружения
+      
+        ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ~/temp_deploy && chmod 700 ~/temp_deploy"
+        
+        
+        scp -o StrictHostKeyChecking=no venv.tar.gz ${VPS_USER}@${VPS_HOST}:~/temp_deploy/
+       
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
           
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
-          
-        scp venv.tar.gz ${VPS_USER}@${VPS_HOST}:/opt/
         
         ssh ${VPS_USER}@${VPS_HOST} "
           set -ex
-          cd /opt
-          tar xzf venv.tar.gz
-          rm venv.tar.gz
-          chown -R ${VPS_USER}:${VPS_USER} venv
+          sudo mkdir -p /opt/venv
+          sudo tar xzf ~/temp_deploy/venv.tar.gz -C /opt/
+          sudo chown -R ${VPS_USER}:${VPS_USER} /opt/venv
+          rm -rf ~/temp_deploy
           
           cd /opt/Todo-back-main
           source /opt/venv/bin/activate
@@ -134,3 +137,5 @@ jobs:
           sudo systemctl enable todo.service
           sudo systemctl restart todo.service
         "
+              
+        
