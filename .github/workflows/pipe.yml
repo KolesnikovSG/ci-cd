@@ -104,40 +104,60 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
   
-    - name: Deploy to VPS
-      env:
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
+    - name: Setup SSH connection
       run: |
-        # Создаем .ssh и добавляем ключ хоста в known_hosts
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
-        ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
         chmod 600 ~/.ssh/known_hosts
   
-        # Копируем файлы на сервер
-        scp -o StrictHostKeyChecking=no venv.tar.gz ${VPS_USER}@${VPS_HOST}:~/temp_deploy/
-       
-        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
-          Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
-          
-        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
-          Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
+    - name: Verify SSH access
+      run: |
+        ssh -T -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo 'SSH connection successful'"
+  
+    - name: Prepare remote server
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+        set -ex
+        # Create deployment directory in user's home
+        DEPLOY_DIR="/home/$USER/deploy_$(date +%s)"
+        mkdir -p "$DEPLOY_DIR"
         
-        # Выполняем команды на сервере
-        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
-          set -ex
-          sudo mkdir -p /opt/venv
-          sudo tar xzf ~/temp_deploy/venv.tar.gz -C /opt/
-          sudo chown -R ${VPS_USER}:${VPS_USER} /opt/venv
-          rm -rf ~/temp_deploy
-          
-          cd /opt/Todo-back-main
-          source /opt/venv/bin/activate
-          python3 manage.py migrate
-          
-          sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
-          sudo systemctl daemon-reload
-          sudo systemctl enable todo.service
-          sudo systemctl restart todo.service
-        "
+        # Prepare target directories
+        sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main /opt/venv
+        sudo chown -R $USER:$USER /opt/Todo-*
+        sudo chown -R $USER:$USER /opt/venv
+        EOF
+  
+    - name: Upload artifacts
+      run: |
+        # Upload using rsync directly to target directories
+        rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+          Todo-back-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-back-main/
+        
+        rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+          Todo-front-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-front-main/
+        
+        # Upload venv archive to user's home
+        scp -o StrictHostKeyChecking=no venv.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:~/venv.tar.gz
+  
+    - name: Deploy application
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+        set -ex
+        # Extract virtual environment
+        tar xzf ~/venv.tar.gz -C /opt/
+        rm ~/venv.tar.gz
+        
+        # Install dependencies and migrate
+        cd /opt/Todo-back-main
+        source /opt/venv/bin/activate
+        pip install -r requirements.txt
+        python manage.py migrate
+        
+        # Setup systemd service
+        sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
+        sudo systemctl daemon-reload
+        sudo systemctl enable todo.service
+        sudo systemctl restart todo.service
+        EOF
