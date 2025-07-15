@@ -116,8 +116,8 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
           set -ex
           sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main /opt/venv
-          sudo chown -R $USER:$USER /opt/Todo-*
-          sudo chown -R $USER:$USER /opt/venv
+          sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/Todo-*
+          sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/venv
         "
   
     - name: Upload application files
