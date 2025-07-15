@@ -9,65 +9,86 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-
-      - name: Cache pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
-      - name: Install dependencies and build
-        working-directory: ./Todo-back-main
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          # Здесь любые действия сборки, если нужны
-          
-      - name: Upload virtual environment as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-venv
-          path: Todo-back-main/venv
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      working-directory: ./Todo-back-main
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt pytest pytest-django psycopg2-binary
+        
+    - name: Collect static files
+      working-directory: ./Todo-back-main
+      run: |
+        python manage.py collectstatic --noinput
+        
+    - name: Create virtual environment archive
+      run: |
+        python -m venv venv
+        ./venv/bin/pip install -r Todo-back-main/requirements.txt
+        tar czf venv.tar.gz venv/
+        
+    - name: Save artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-artifacts
+        path: |
+          Todo-back-main/
+          Todo-front-main/
+          venv.tar.gz
 
   test:
     needs: build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download virtual environment
-        uses: actions/download-artifact@v4
-        with:
-          name: python-venv
-          path: Todo-back-main/venv
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-      
-      - name: Run tests
-        working-directory: ./Todo-back-main
+    services:
+      postgres:
+        image: postgres:14
         env:
-          DJANGO_SETTINGS_MODULE: todoback.test_settings
-        run: |
-          source venv/bin/activate
-          python manage.py test todo.tests
-
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+  
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: app-artifacts
+        path: .
+        
+    - name: Restore virtual environment
+      run: |
+        tar xzf venv.tar.gz
+        rm venv.tar.gz
+        
+    - name: Run tests
+      working-directory: ./Todo-back-main
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_db
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DJANGO_SETTINGS_MODULE: todoback.test_settings
+        PATH: ${{ github.workspace }}/venv/bin:$PATH
+      run: |
+        python manage.py test todo.tests
 
   deploy:
-    needs: [build, test]  # Деплой зависит и от сборки, и от тестов
+    needs: [build, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     
@@ -75,60 +96,40 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        name: backend-deps
-        path: Todo-back-main
+        name: app-artifacts
+        path: .
         
-    - name: Download frontend artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: frontend
-        path: Todo-front-main
-    
     - name: Install SSH key
       uses: webfactory/ssh-agent@v0.8.0
       with:
         ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-    - name: Add VPS host to known_hosts
-      run: |
-        mkdir -p ~/.ssh
-        ssh-keyscan ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-        chmod 600 ~/.ssh/known_hosts
-    
     - name: Deploy to VPS
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh ${VPS_USER}@${VPS_HOST} "
-          set -ex
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-venv python3-pip gunicorn
-          sudo mkdir -p /opt/{Todo-back-main,Todo-front-main,venv}
-          sudo chown -R ${VPS_USER}:${VPS_USER} /opt/*
-        "
-        
+        # Развертывание кода и виртуального окружения
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           Todo-back-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-back-main/
           
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" \
           Todo-front-main/ ${VPS_USER}@${VPS_HOST}:/opt/Todo-front-main/
+          
+        scp venv.tar.gz ${VPS_USER}@${VPS_HOST}:/opt/
         
         ssh ${VPS_USER}@${VPS_HOST} "
           set -ex
+          cd /opt
+          tar xzf venv.tar.gz
+          rm venv.tar.gz
+          chown -R ${VPS_USER}:${VPS_USER} venv
+          
           cd /opt/Todo-back-main
-          
-          python3 -m venv --clear /opt/venv
           source /opt/venv/bin/activate
-          
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          
           python manage.py migrate
-          python manage.py collectstatic --noinput
           
           sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
-          sudo chmod 644 /etc/systemd/system/todo.service
           sudo systemctl daemon-reload
           sudo systemctl enable todo.service
           sudo systemctl restart todo.service
