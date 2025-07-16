@@ -16,7 +16,7 @@
   let TODOS = [];
   let CURRENT_PAGE = 1;
   let FILTER_QUERY = "all";
-  const URL = "http://127.0.0.1:8000/api/todo/";
+  const URL = "/api/todo/";
   const TODOS_PER_PAGE = 5;
   const BUTTON_KEYS = {
     enter: "Enter",

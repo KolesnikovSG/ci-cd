@@ -17,11 +17,13 @@ SECRET_KEY = 'tyhfnc-ik2678jsn-9-8765hlvnaufnc-ik2678jsn-9-8765hlvnau'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['82.202.139.79','localhost']
+ALLOWED_HOSTS = ['82.202.139.79', 'localhost']
 
 CSRF_TRUSTED_ORIGINS = ['http://82.202.139.79']
 
 STATIC_URL = '/staticfiles/'
+
+CSRF_TRUSTED_ORIGINS = ['http://82.202.139.79', 'https://82.202.139.79']
 
 STATIC_ROOT = '/opt/Todo-back-main/staticfiles'
 
@@ -59,6 +61,7 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     'http://82.202.139.79',
     'http://127.0.0.1:5500',
+    'http://localhost:5500'
     'https://t3.academy.dunice-testing.com'
 ]
 
@@ -129,8 +132,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
