@@ -352,7 +352,7 @@
     }
   };
 
-  const checkDoneAllTasks = () => {
+  const checkDoneAllTasks = async () => {
     const state = checkAllTasksButton.checked;
     await fetch(URLS.completeAll, {
   method: "PATCH",
