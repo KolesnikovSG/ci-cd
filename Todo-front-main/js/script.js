@@ -16,7 +16,11 @@
   let TODOS = [];
   let CURRENT_PAGE = 1;
   let FILTER_QUERY = "all";
-  const URL = "/api/todo/";
+  const API_BASE = "/api/";
+  const URLS = {
+    todos: `${API_BASE}todos/`,
+    completeAll: `${API_BASE}todos/complete_all/`
+  };
   const TODOS_PER_PAGE = 5;
   const BUTTON_KEYS = {
     enter: "Enter",
@@ -208,7 +212,7 @@
   };
 
   const getData = async () => {
-    await fetch(URL, {
+    await fetch(URLS.todos, {
       method: "GET",
     })
       .then((response) => {
@@ -231,7 +235,7 @@
   };
 
   const postData = async (data) => {
-    await fetch(URL, {
+    await fetch(URLS.todos, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -251,7 +255,7 @@
   };
 
   const deleteData = async (id) => {
-    await fetch(URL + id + "/", {
+    await fetch(`${URLS.todos}${id}/`, {
       method: "DELETE",
     })
       .then((response) => {
@@ -264,7 +268,7 @@
   };
 
   const patchData = async (id, data) => {
-    await fetch(URL + id + "/", {
+    await fetch(`${URLS.todos}${id}/`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -350,7 +354,11 @@
 
   const checkDoneAllTasks = () => {
     const state = checkAllTasksButton.checked;
-    patchData("complete_all", { is_completed: state });
+    await fetch(URLS.completeAll, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ is_completed: state })
+})
   };
 
   const changeText = (taskId, text) => {
