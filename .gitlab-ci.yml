@@ -28,7 +28,7 @@ build_backend:
   only:
     - br1
   tags:
-    - docker
+    - gitlab
   script:
     - cd ${BACKEND_DIR}
     - python -m venv venv
@@ -41,14 +41,14 @@ build_backend:
       - ${BACKEND_DIR}/venv/
       - ${BACKEND_DIR}/build/
     expire_in: 1 week
-    
+
 
 test_backend:
   stage: test
   only:
     - br1
   tags:
-    - docker
+    - gitlab
   services:
     - postgres:latest
   variables:
@@ -72,25 +72,30 @@ test_backend:
     expire_in: 1 week
 
 
+before_script:
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "${DEPLOY_KEY}" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan ${DEPLOY_HOST} >> ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+
 deploy_staging:
   stage: deploy
   only:
     - br1
   environment:
     name: staging
-    url: http://82.202.139.13:8081
-  tags:
-    - docker
+    url: http://${DEPLOY_HOST}:8081
   script:
-    - echo "Deploying to staging..."
-    - ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@82.202.139.13 "
-      mkdir -p ${STAGING_DIR}/backend &&
-      mkdir -p ${STAGING_DIR}/frontend &&
-      rsync -avz --delete ${BACKEND_DIR}/ ${STAGING_DIR}/backend/ &&
-      rsync -avz --delete frontend_build/ ${STAGING_DIR}/frontend/ &&
+    - echo "Deploying backend to staging..."
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ ${DEPLOY_USER}@${DEPLOY_HOST}:${STAGING_DIR}/backend/
+    - ssh ${DEPLOY_USER}@${DEPLOY_HOST} "
       cd ${STAGING_DIR}/backend &&
       source venv/bin/activate &&
-      gunicorn -b 0.0.0.0:8081 app:app --daemon &&
+      pip install -r requirements.txt &&
+      gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
       sudo systemctl restart nginx
       "
 
@@ -101,16 +106,14 @@ deploy_production:
   when: manual
   environment:
     name: production
-    url: http://82.202.139.13
-  tags:
-    - docker
+    url: http://${DEPLOY_HOST}
   script:
     - echo "Deploying to production..."
-    - ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@82.202.139.13 "
-      mkdir -p ${PRODUCTION_DIR}/backend &&
-      mkdir -p ${PRODUCTION_DIR}/frontend &&
-      rsync -avz --delete ${BACKEND_DIR}/ ${PRODUCTION_DIR}/backend/ &&
-      rsync -avz --delete frontend_build/ ${PRODUCTION_DIR}/frontend/ &&
-      sudo systemctl restart myapp.service &&
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ ${DEPLOY_USER}@${DEPLOY_HOST}:${PRODUCTION_DIR}/backend/
+    - ssh ${DEPLOY_USER}@${DEPLOY_HOST} "
+      cd ${PRODUCTION_DIR}/backend &&
+      source venv/bin/activate &&
+      pip install -r requirements.txt &&
+      sudo systemctl restart todo.service &&
       sudo systemctl restart nginx
       "
