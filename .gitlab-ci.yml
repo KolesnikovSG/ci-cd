@@ -8,8 +8,8 @@ variables:
   PROJECT_DIR: "/var/www"
   PRODUCTION_DIR: "${PROJECT_DIR}/app"
   STAGING_DIR: "${PROJECT_DIR}/staging"
-  FRONTEND_DIR: "todo-front"
-  BACKEND_DIR: "todo-back"
+  FRONTEND_DIR: "Todo-front-main"
+  BACKEND_DIR: "Todo-back-main"
 
 
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -30,6 +30,7 @@ build_backend:
   tags:
     - gitlab
   script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - cd ${BACKEND_DIR}
     - python -m venv venv
     - source venv/bin/activate
@@ -75,10 +76,10 @@ test_backend:
 before_script:
   - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
   - eval $(ssh-agent -s)
-  - echo "${DEPLOY_KEY}" | tr -d '\r' | ssh-add -
+  - echo "$DEPLOY_KEY" | tr -d '\r' | ssh-add -
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
-  - ssh-keyscan ${DEPLOY_HOST} >> ~/.ssh/known_hosts
+  - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
 
 deploy_staging:
@@ -87,11 +88,11 @@ deploy_staging:
     - br1
   environment:
     name: staging
-    url: http://${DEPLOY_HOST}:8081
+    url: http://$DEPLOY_HOST:8081
   script:
     - echo "Deploying backend to staging..."
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ ${DEPLOY_USER}@${DEPLOY_HOST}:${STAGING_DIR}/backend/
-    - ssh ${DEPLOY_USER}@${DEPLOY_HOST} "
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:$STAGING_DIR/backend/
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "
       cd ${STAGING_DIR}/backend &&
       source venv/bin/activate &&
       pip install -r requirements.txt &&
@@ -106,11 +107,11 @@ deploy_production:
   when: manual
   environment:
     name: production
-    url: http://${DEPLOY_HOST}
+    url: http://$DEPLOY_HOST
   script:
     - echo "Deploying to production..."
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ ${DEPLOY_USER}@${DEPLOY_HOST}:${PRODUCTION_DIR}/backend/
-    - ssh ${DEPLOY_USER}@${DEPLOY_HOST} "
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:${PRODUCTION_DIR}/backend/
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
       pip install -r requirements.txt &&
