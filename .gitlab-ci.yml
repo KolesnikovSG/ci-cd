@@ -1,0 +1,116 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+
+  PROJECT_DIR: "/var/www"
+  PRODUCTION_DIR: "${PROJECT_DIR}/app"
+  STAGING_DIR: "${PROJECT_DIR}/staging"
+  FRONTEND_DIR: "todo-front"
+  BACKEND_DIR: "todo-back"
+
+
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PYTHON_VERSION: "3.9"
+
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - frontend/node_modules/
+    - backend/.cache/pip/
+    - backend/venv/
+
+build_backend:
+  stage: build
+  only:
+    - br1
+  tags:
+    - docker
+  script:
+    - cd ${BACKEND_DIR}
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - python setup.py build
+  artifacts:
+    paths:
+      - ${BACKEND_DIR}/venv/
+      - ${BACKEND_DIR}/build/
+    expire_in: 1 week
+    
+
+test_backend:
+  stage: test
+  only:
+    - br1
+  tags:
+    - docker
+  services:
+    - postgres:latest
+  variables:
+    POSTGRES_DB: test_db
+    POSTGRES_USER: runner
+    POSTGRES_PASSWORD: ""
+    POSTGRES_HOST_AUTH_METHOD: trust
+    DATABASE_URL: "postgres://runner@postgres/test_db"
+  script:
+    - cd ${BACKEND_DIR}
+    - apt-get update && apt-get install -y libpq-dev gcc python3-dev
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - python manage.py migrate
+    - pytest --junitxml=report.xml
+  artifacts:
+    reports:
+      junit: ${BACKEND_DIR}/report.xml
+    expire_in: 1 week
+
+
+deploy_staging:
+  stage: deploy
+  only:
+    - br1
+  environment:
+    name: staging
+    url: http://82.202.139.13:8081
+  tags:
+    - docker
+  script:
+    - echo "Deploying to staging..."
+    - ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@82.202.139.13 "
+      mkdir -p ${STAGING_DIR}/backend &&
+      mkdir -p ${STAGING_DIR}/frontend &&
+      rsync -avz --delete ${BACKEND_DIR}/ ${STAGING_DIR}/backend/ &&
+      rsync -avz --delete frontend_build/ ${STAGING_DIR}/frontend/ &&
+      cd ${STAGING_DIR}/backend &&
+      source venv/bin/activate &&
+      gunicorn -b 0.0.0.0:8081 app:app --daemon &&
+      sudo systemctl restart nginx
+      "
+
+deploy_production:
+  stage: deploy
+  only:
+    - master
+  when: manual
+  environment:
+    name: production
+    url: http://82.202.139.13
+  tags:
+    - docker
+  script:
+    - echo "Deploying to production..."
+    - ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@82.202.139.13 "
+      mkdir -p ${PRODUCTION_DIR}/backend &&
+      mkdir -p ${PRODUCTION_DIR}/frontend &&
+      rsync -avz --delete ${BACKEND_DIR}/ ${PRODUCTION_DIR}/backend/ &&
+      rsync -avz --delete frontend_build/ ${PRODUCTION_DIR}/frontend/ &&
+      sudo systemctl restart myapp.service &&
+      sudo systemctl restart nginx
+      "
