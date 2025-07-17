@@ -28,7 +28,7 @@ build_backend:
   only:
     - br1
   tags:
-    - gitlab
+    - docker
   script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - cd ${BACKEND_DIR}
@@ -49,7 +49,7 @@ test_backend:
   only:
     - br1
   tags:
-    - gitlab
+    - docker
   services:
     - postgres:latest
   variables:
