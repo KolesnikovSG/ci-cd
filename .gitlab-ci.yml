@@ -51,7 +51,7 @@ test_backend:
     - pip3 install --user xmlrunner
     - cd ${BACKEND_DIR}
     - mkdir -p test-reports
-    - python3 -m xmlrunner discover -o test-reports/ -p "*tests*.py"
+    - pytest --junitxml=../test-reports/junit.xml
     - ls -la test-reports/
   artifacts:
     when: always
