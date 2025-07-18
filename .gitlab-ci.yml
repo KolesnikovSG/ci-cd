@@ -26,7 +26,7 @@ build_backend:
     - cd ${BACKEND_DIR}
     - pip install --user --upgrade pip
     - pip install --user --cache-dir ${PIP_CACHE_DIR} -r requirements.txt pytest pytest-django psycopg2-binary
-    - python manage.py collectstatic --noinput
+    - python3 manage.py collectstatic --noinput
   artifacts:
     paths:
       - ${BACKEND_DIR}/
@@ -43,7 +43,7 @@ test_backend:
       alias: postgres
   script:
     - cd ${BACKEND_DIR}
-    - pip install --user xmlrunner xmlrunner-extra
+    - sudo pip install --user xmlrunner xmlrunner-extra
     - mkdir -p test-reports
     - python -m xmlrunner discover -o test-reports/ -p "*tests*.py"
   artifacts:
