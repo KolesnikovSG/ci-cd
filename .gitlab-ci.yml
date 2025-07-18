@@ -43,7 +43,6 @@ build_backend:
     - source venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements.txt
-    - python3 setup.py build
   artifacts:
     paths:
       - ${BACKEND_DIR}/venv/
