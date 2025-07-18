@@ -14,7 +14,6 @@ variables:
   PYTHON_VERSION: "3.9"
 
 
-
 cache:
   key: "$CI_COMMIT_REF_SLUG"
   paths:
