@@ -10,7 +10,6 @@ variables:
   STAGING_DIR: "${PROJECT_DIR}/staging"
   FRONTEND_DIR: "Todo-front-main"
   BACKEND_DIR: "Todo-back-main"
-
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PYTHON_VERSION: "3.9"
 
