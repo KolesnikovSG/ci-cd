@@ -55,8 +55,10 @@ test_backend:
     - ls -la test-reports/
   artifacts:
     when: always
+    paths:
+      - test-reports/junit.xml 
     reports:
-      junit: ${BACKEND_DIR}/test-reports/*.xml
+      junit: test-reports/junit.xml
     expire_in: 1 week
 
 
