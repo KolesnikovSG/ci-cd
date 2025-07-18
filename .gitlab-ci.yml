@@ -72,14 +72,8 @@ test_backend:
     expire_in: 1 week
 
 
-before_script:
-  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-  - echo "$DEPLOY_KEY" | tr -d '\r' | ssh-add -
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
-  - chmod 644 ~/.ssh/known_hosts
+
+
 
 deploy_staging:
   stage: deploy
@@ -88,6 +82,14 @@ deploy_staging:
   environment:
     name: staging
     url: http://$DEPLOY_HOST:8081
+  before_script:
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - eval $(ssh-agent -s)
+  - echo "$DEPLOY_KEY" | tr -d '\r' | ssh-add -
+  - mkdir -p ~/.ssh
+  - chmod 700 ~/.ssh
+  - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deploying backend to staging..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:$STAGING_DIR/backend/
