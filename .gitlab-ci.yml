@@ -40,7 +40,14 @@ test_backend:
   services:
     - name: postgres:14
       alias: postgres
+  variables:
+    DB_HOST: "localhost"
+    DB_PORT: "5432"
+    DB_NAME: "test_db"
+    DB_USER: "postgres"
+    DB_PASSWORD: "postgres"
   script:
+    - apt-get update && apt-get install -y python3-pip
     - cd ${BACKEND_DIR}
     - pip install --user xmlrunner xmlrunner-extra
     - mkdir -p test-reports
