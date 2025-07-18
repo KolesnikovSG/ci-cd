@@ -21,11 +21,10 @@ build_backend:
   tags:
     - docker
   script:
-    - apt-get update -y
-    - apt-get install -y python${PYTHON_VERSION} python3-pip
+    - apt-get update && apt-get install -y python3-pip python3-venv
+    - python3 -m pip install --upgrade pip
     - cd ${BACKEND_DIR}
-    - pip install --user --upgrade pip
-    - pip install --user --cache-dir ${PIP_CACHE_DIR} -r requirements.txt pytest pytest-django psycopg2-binary
+    - pip install -r requirements.txt pytest pytest-django psycopg2-binary
     - python3 manage.py collectstatic --noinput
   artifacts:
     paths:
