@@ -29,6 +29,7 @@ build_backend:
   tags:
     - docker
   script:
+    - echo "10.107.8.153 gitlab.example.com" >> /etc/hosts
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - cd ${BACKEND_DIR}
     - python -m venv venv
