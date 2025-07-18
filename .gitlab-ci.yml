@@ -72,10 +72,10 @@ test_backend:
   script:
     - tar xzf venv.tar.gz
     - rm venv.tar.gz
-    - cd ${BACKEND_DIR}
+    - mkdir -p ${BACKEND_DIR}/test-reports
     - source ../venv/bin/activate
-    - mkdir -p test-reports 
-    - python3 manage.py test todo.tests --verbosity=2 --no-input --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner --output-file=test-reports/junit.xml 
+    - cd ${BACKEND_DIR}
+    - python manage.py test todo.tests --verbosity=2 --no-input --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner --output-file=test-reports/junit.xml 
   artifacts:
     when: always 
     paths:
