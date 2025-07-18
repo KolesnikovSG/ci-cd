@@ -12,7 +12,6 @@ variables:
   BACKEND_DIR: "Todo-back-main"
 
 
-
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PYTHON_VERSION: "3.9"
 
