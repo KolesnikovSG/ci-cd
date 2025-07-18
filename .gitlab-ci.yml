@@ -51,30 +51,37 @@ build_backend:
 
 test_backend:
   stage: test
+  needs: ["build_backend"]
   only:
     - br1
   tags:
     - docker
   services:
-    - postgres:latest
+    - name: postgres:14
+      alias: postgres
+      variables:
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+        POSTGRES_DB: "test_db"
   variables:
-    POSTGRES_DB: test_db
-    POSTGRES_USER: runner
-    POSTGRES_PASSWORD: ""
-    POSTGRES_HOST_AUTH_METHOD: trust
-    DATABASE_URL: "postgres://runner@postgres/test_db"
+    DB_HOST: "localhost"
+    DB_PORT: "5432"
+    DB_NAME: "test_db"
+    DB_USER: "postgres"
+    DB_PASSWORD: "postgres"
   script:
+    - tar xzf venv.tar.gz
+    - rm venv.tar.gz
     - cd ${BACKEND_DIR}
-    - apt-get update && apt-get install -y libpq-dev gcc python3-dev
-    - python -m venv venv
-    - source venv/bin/activate
-    - pip install --upgrade pip
-    - pip install -r requirements.txt
-    - python manage.py migrate
-    - pytest --junitxml=report.xml
+    - source ../venv/bin/activate
+    - mkdir -p test-reports 
+    - python3 manage.py test todo.tests --verbosity=2 --no-input --testrunner=xmlrunner.extra.djangotestrunner.XMLTestRunner --output-file=test-reports/junit.xml 
   artifacts:
+    when: always 
+    paths:
+      - ${BACKEND_DIR}/test-reports/ 
     reports:
-      junit: ${BACKEND_DIR}/report.xml
+      junit: ${BACKEND_DIR}/test-reports/junit.xml 
     expire_in: 1 week
 
 
@@ -97,6 +104,7 @@ deploy_staging:
   - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
   script:
+    - ineed error
     - echo "Deploying backend to staging..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:$STAGING_DIR/backend/
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
