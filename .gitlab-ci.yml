@@ -43,7 +43,7 @@ test_backend:
       alias: postgres
   script:
     - cd ${BACKEND_DIR}
-    - sudo pip install --user xmlrunner xmlrunner-extra
+    - pip install --user xmlrunner xmlrunner-extra
     - mkdir -p test-reports
     - python -m xmlrunner discover -o test-reports/ -p "*tests*.py"
   artifacts:
