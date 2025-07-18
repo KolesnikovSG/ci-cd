@@ -52,18 +52,24 @@ test_backend:
     DB_PASSWORD: "postgres"
     DJANGO_SETTINGS_MODULE: "todoback.test_settings"
   script:
-    # Активация виртуального окружения
+    # Установка Python и создание venv (как в GitHub Actions)
+    - apt-get update && apt-get install -y python3 python3-venv python3-pip
+    - python3 -m venv venv
     - source venv/bin/activate
     
-    # Переход в директорию бэкенда
-    - cd ${BACKEND_DIR}
+    # Установка зависимостей
+    - pip install -r ${BACKEND_DIR}/requirements.txt
     
-    # Запуск тестов Django (как в GitHub Actions)
+    # Запуск тестов (точно как в GitHub Actions)
+    - cd ${BACKEND_DIR}
     - python manage.py test todo.tests
     
-    # Создаем пустой junit.xml для совместимости с GitLab
+    # Создаем минимальный junit.xml для GitLab
     - mkdir -p test-reports
-    - echo '<?xml version="1.0" encoding="utf-8"?><testsuite></testsuite>' > test-reports/junit.xml
+    - echo '<?xml version="1.0"?><testsuite></testsuite>' > test-reports/junit.xml
+    
+    # Проверка
+    - ls -la test-reports/
   artifacts:
     when: always
     paths:
