@@ -45,6 +45,7 @@ build_backend:
     - ln -s /usr/bin/python3 /usr/bin/python
     - ln -fs /usr/bin/pip3 /usr/bin/pip
     - cd ${BACKEND_DIR}
+    - python -m ensurepip --upgrade
     - python -m pip install --upgrade pip
     - pip install -r requirements.txt pytest pytest-django psycopg2-binary
     - python manage.py collectstatic --noinput
