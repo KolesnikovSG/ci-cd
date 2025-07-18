@@ -48,10 +48,11 @@ test_backend:
     DB_PASSWORD: "postgres"
   script:
     - apt-get update && apt-get install -y python3-pip
+    - pip3 install --user xmlrunner
     - cd ${BACKEND_DIR}
-    - pip install --user xmlrunner xmlrunner-extra
     - mkdir -p test-reports
     - python -m xmlrunner discover -o test-reports/ -p "*tests*.py"
+    - ls -la test-reports/
   artifacts:
     when: always
     reports:
