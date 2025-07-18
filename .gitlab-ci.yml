@@ -39,11 +39,11 @@ build_backend:
     - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - cd ${BACKEND_DIR}
-    - python -m venv venv
+    - python3 -m venv venv
     - source venv/bin/activate
     - pip install --upgrade pip
     - pip install -r requirements.txt
-    - python setup.py build
+    - python3 setup.py build
   artifacts:
     paths:
       - ${BACKEND_DIR}/venv/
