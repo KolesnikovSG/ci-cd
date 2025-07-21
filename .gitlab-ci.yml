@@ -108,7 +108,7 @@ deploy_staging:
         sudo ln -sf /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
         sudo systemctl enable todo-staging &&
         sudo systemctl start todo-staging &&
-        sudo systemtl restart nginx
+        sudo systemctl restart nginx
         "
 
 
