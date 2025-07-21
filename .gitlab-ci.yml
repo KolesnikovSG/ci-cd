@@ -86,7 +86,7 @@ deploy_staging:
     name: staging
     url: http://$DEPLOY_HOST:8081
   before_script:
-  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
   - eval $(ssh-agent -s)
   - echo "$DEPLOY_KEY" | ssh-add -
   - mkdir -p ~/.ssh
