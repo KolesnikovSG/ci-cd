@@ -96,6 +96,7 @@ deploy_staging:
   script:
     - echo "Deploying backend to staging..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${STAGING_DIR}/backend/
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${STAGING_DIR}/frontend/
     - ssh $DEPLOY_USER@82.202.139.13 "
         cd ${STAGING_DIR}/backend &&
         sudo apt-get update &&
@@ -124,6 +125,7 @@ deploy_production:
   script:
     - echo "Deploying to production..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/backend/
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/frontend/
     - ssh "$DEPLOY_USER@82.202.139.13"
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
