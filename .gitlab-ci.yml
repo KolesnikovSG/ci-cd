@@ -5,8 +5,8 @@ stages:
 
 variables:
   PROJECT_DIR: "/var/www"
-  BACKEND_DIR: "backend"
-  FRONTEND_DIR: "frontend"
+  BACKEND_DIR: "Todo-back-main
+  FRONTEND_DIR: "Todo-front-main"
   PYTHON_VERSION: "3.10"
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   PRODUCTION_DIR: "/var/www/production/backend"
@@ -133,4 +133,3 @@ deploy_production:
       sudo systemctl restart todo.service &&
       sudo systemctl restart nginx
       "
-      
