@@ -110,6 +110,7 @@ deploy_staging:
       sudo systemctl restart nginx
       "
 
+
 deploy_production:
   stage: deploy
   only:
