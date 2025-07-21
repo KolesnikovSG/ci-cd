@@ -105,10 +105,10 @@ deploy_staging:
         source venv/bin/activate &&
         pip install -r requirements.txt &&
         gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
-        sudo ln -s /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
+        sudo ln -sf /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
         sudo systemctl enable todo-staging &&
         sudo systemctl start todo-staging &&
-        sudo systemctl restart nginx
+        sudo systemtl restart nginx
         "
 
 
@@ -130,7 +130,7 @@ deploy_production:
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
       sudo pip install -r requirements.txt &&
-      sudo ln -s /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
+      sudo ln -sf /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
       sudo systemctl enable todo-prod &&
       sudo systemctl start todo-prod &&
       sudo systemctl restart todo.service &&
