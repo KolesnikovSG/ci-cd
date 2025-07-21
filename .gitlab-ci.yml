@@ -5,7 +5,7 @@ stages:
 
 variables:
   PROJECT_DIR: "/var/www"
-  BACKEND_DIR: "Todo-back-main
+  BACKEND_DIR: "Todo-back-main"
   FRONTEND_DIR: "Todo-front-main"
   PYTHON_VERSION: "3.10"
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
