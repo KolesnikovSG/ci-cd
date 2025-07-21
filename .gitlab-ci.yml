@@ -5,10 +5,12 @@ stages:
 
 variables:
   PROJECT_DIR: "/var/www"
-  BACKEND_DIR: "Todo-back-main"
-  FRONTEND_DIR: "Todo-front-main"
+  BACKEND_DIR: "backend"
+  FRONTEND_DIR: "frontend"
   PYTHON_VERSION: "3.10"
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  PRODUCTION_DIR: "/var/www/production/backend"
+  STAGING_DIR: "/var/www/staging/backend"
 
 cache:
   key: "$CI_COMMIT_REF_SLUG"
@@ -45,30 +47,22 @@ test_backend:
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_DB: "test_db"
   variables:
-    DB_HOST: "postgres"  # Используем alias сервиса
+    DB_HOST: "postgres" 
     DB_PORT: "5432"
     DB_NAME: "test_db"
     DB_USER: "postgres"
     DB_PASSWORD: "postgres"
     DJANGO_SETTINGS_MODULE: "todoback.test_settings"
   script:
-    # Установка Python и создание venv (как в GitHub Actions)
+    
     - apt-get update && apt-get install -y python3 python3-venv python3-pip
     - python3 -m venv venv
     - source venv/bin/activate
-    
-    # Установка зависимостей
     - pip install -r ${BACKEND_DIR}/requirements.txt
-    
-    # Запуск тестов (точно как в GitHub Actions)
     - cd ${BACKEND_DIR}
     - python manage.py test todo.tests
-    
-    # Создаем минимальный junit.xml для GitLab
     - mkdir -p test-reports
     - echo '<?xml version="1.0"?><testsuite></testsuite>' > test-reports/junit.xml
-    
-    # Проверка
     - ls -la test-reports/
   artifacts:
     when: always
@@ -83,8 +77,11 @@ test_backend:
 
 deploy_staging:
   stage: deploy
+  needs: ["test_backend"]
   only:
     - br1
+  tags:
+    - docker
   environment:
     name: staging
     url: http://$DEPLOY_HOST:8081
@@ -97,14 +94,19 @@ deploy_staging:
   - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
   script:
-    - ineed error
     - echo "Deploying backend to staging..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:$STAGING_DIR/backend/
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
       cd ${STAGING_DIR}/backend &&
+      apt-get update && apt-get install -y python3 python3-venv python3-pip &&
+      python3 -m venv venv &&
       source venv/bin/activate &&
-      pip install -r requirements.txt &&
+      pip install -r requirements.txt
+      source venv/bin/activate &&
       gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
+      sudo ln -s /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
+      sudo systemctl enable todo-staging &&
+      sudo systemctl start todo-staging &&
       sudo systemctl restart nginx
       "
 
@@ -112,6 +114,8 @@ deploy_production:
   stage: deploy
   only:
     - master
+  tags:
+    - docker
   when: manual
   environment:
     name: production
@@ -123,6 +127,9 @@ deploy_production:
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
       pip install -r requirements.txt &&
+      sudo ln -s /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
+      sudo systemctl enable todo-prod &&
+      sudo systemctl start todo-prod &&
       sudo systemctl restart todo.service &&
       sudo systemctl restart nginx
       "
