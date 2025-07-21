@@ -9,8 +9,8 @@ variables:
   FRONTEND_DIR: "Todo-front-main"
   PYTHON_VERSION: "3.10"
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
-  PRODUCTION_DIR: "/var/www/production/backend"
-  STAGING_DIR: "/var/www/staging/backend"
+  PRODUCTION_DIR: "/var/www/production/"
+  STAGING_DIR: "/var/www/staging/"
 
 cache:
   key: "$CI_COMMIT_REF_SLUG"
@@ -98,12 +98,12 @@ deploy_staging:
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:$STAGING_DIR/backend/
     - ssh $DEPLOY_USER@$DEPLOY_HOST "
       cd ${STAGING_DIR}/backend &&
-      apt-get update && apt-get install -y python3 python3-venv python3-pip &&
-      python3 -m venv venv &&
+      sudo apt-get update && apt-get install -y python3 python3-venv python3-pip &&
+      sudo python3 -m venv venv &&
       source venv/bin/activate &&
-      pip install -r requirements.txt
+      sudo pip install -r requirements.txt
       source venv/bin/activate &&
-      gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
+      sudo gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
       sudo ln -s /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
       sudo systemctl enable todo-staging &&
       sudo systemctl start todo-staging &&
@@ -127,7 +127,7 @@ deploy_production:
     - ssh $DEPLOY_USER@82.202.139.13"
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
-      pip install -r requirements.txt &&
+      sudo pip install -r requirements.txt &&
       sudo ln -s /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
       sudo systemctl enable todo-prod &&
       sudo systemctl start todo-prod &&
