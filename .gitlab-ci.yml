@@ -95,20 +95,20 @@ deploy_staging:
   - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deploying backend to staging..."
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:$STAGING_DIR/backend/
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "
-      cd ${STAGING_DIR}/backend &&
-      sudo apt-get update && sudo apt-get install -y python3 sudo python3-venv python3-pip &&
-      sudo python3 -m venv venv &&
-      source venv/bin/activate &&
-      sudo pip install -r requirements.txt
-      source venv/bin/activate &&
-      sudo gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
-      sudo ln -s /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
-      sudo systemctl enable todo-staging &&
-      sudo systemctl start todo-staging &&
-      sudo systemctl restart nginx
-      "
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${STAGING_DIR}/backend/
+    - ssh $DEPLOY_USER@82.202.139.13 "
+        cd ${STAGING_DIR}/backend &&
+        sudo apt-get update &&
+        sudo apt-get install -y python3 python3-venv python3-pip &&
+        python3 -m venv venv &&
+        source venv/bin/activate &&
+        pip install -r requirements.txt &&
+        gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
+        sudo ln -s /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
+        sudo systemctl enable todo-staging &&
+        sudo systemctl start todo-staging &&
+        sudo systemctl restart nginx
+        "
 
 
 deploy_production:
@@ -124,7 +124,7 @@ deploy_production:
   script:
     - echo "Deploying to production..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/backend/
-    - ssh $DEPLOY_USER@82.202.139.13"
+    - ssh "$DEPLOY_USER@82.202.139.13"
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
       sudo pip install -r requirements.txt &&
