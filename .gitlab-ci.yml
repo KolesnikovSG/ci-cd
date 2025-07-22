@@ -115,7 +115,7 @@ deploy_staging:
 deploy_production:
   stage: deploy
   only:
-    - master
+    - br1
   tags:
     - docker
   when: manual
