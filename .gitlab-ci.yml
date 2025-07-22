@@ -122,7 +122,8 @@ deploy_production:
   environment:
     name: production
     url: http://82.202.139.13
-    before_script:
+    
+  before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
     - eval $(ssh-agent -s)
     - echo "$DEPLOY_KEY" | ssh-add -
