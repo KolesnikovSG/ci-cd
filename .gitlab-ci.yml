@@ -122,7 +122,7 @@ deploy_production:
   environment:
     name: production
     url: http://82.202.139.13
-    
+
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
     - eval $(ssh-agent -s)
@@ -137,11 +137,14 @@ deploy_production:
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/frontend/
     - ssh $DEPLOY_USER@82.202.139.13 "
       cd ${PRODUCTION_DIR}/backend &&
+      sudo apt-get update &&
+      sudo apt-get install -y python3 python3-venv python3-pip &&
+      python3 -m venv venv &&
       source venv/bin/activate &&
       sudo pip install -r requirements.txt &&
       sudo ln -sf /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
+      sudo systemctl stop todo-staging &&
       sudo systemctl enable todo-prod &&
       sudo systemctl start todo-prod &&
-      sudo systemctl restart todo.service &&
       sudo systemctl restart nginx
       "
