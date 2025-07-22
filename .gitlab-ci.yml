@@ -122,6 +122,14 @@ deploy_production:
   environment:
     name: production
     url: http://82.202.139.13
+    before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_KEY" | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan 82.202.139.13 >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deploying to production..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/backend/
