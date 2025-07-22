@@ -126,7 +126,7 @@ deploy_production:
     - echo "Deploying to production..."
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/backend/
     - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/frontend/
-    - ssh "$DEPLOY_USER@82.202.139.13"
+    - ssh $DEPLOY_USER@82.202.139.13 "
       cd ${PRODUCTION_DIR}/backend &&
       source venv/bin/activate &&
       sudo pip install -r requirements.txt &&
