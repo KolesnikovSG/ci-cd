@@ -9,19 +9,15 @@ variables:
   FRONTEND_DIR: "Todo-front-main"
   PYTHON_VERSION: "3.10"
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
-  PRODUCTION_DIR: "/var/www/production/"
-  STAGING_DIR: "/var/www/staging/"
-
-cache:
-  key: "$CI_COMMIT_REF_SLUG"
-  paths:
-    - .cache/pip
-    - ${BACKEND_DIR}/.cache
+  PRODUCTION_DIR: "/var/www/production"
+  STAGING_DIR: "/var/www/staging"
 
 build_backend:
   stage: build
   tags:
     - docker
+  variables:
+  DJANGO_SETTINGS_MODULE: "todoback.settings"
   script:
     - apt-get update && apt-get install -y python3-pip python3-venv
     - python3 -m pip install --upgrade pip
@@ -31,7 +27,6 @@ build_backend:
   artifacts:
     paths:
       - ${BACKEND_DIR}/
-      - ${FRONTEND_DIR}/ 
     expire_in: 1 week
 
 test_backend:
@@ -53,17 +48,16 @@ test_backend:
     DB_USER: "postgres"
     DB_PASSWORD: "postgres"
     DJANGO_SETTINGS_MODULE: "todoback.test_settings"
-  script:
-    
-    - apt-get update && apt-get install -y python3 python3-venv python3-pip
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - pip install -r ${BACKEND_DIR}/requirements.txt
-    - cd ${BACKEND_DIR}
-    - python manage.py test todo.tests
-    - mkdir -p test-reports
-    - echo '<?xml version="1.0"?><testsuite></testsuite>' > test-reports/junit.xml
-    - ls -la test-reports/
+script:
+  - apt-get update && apt-get install -y python3 python3-venv python3-pip
+  - python3 -m venv venv
+  - source venv/bin/activate
+  - pip install -r ${BACKEND_DIR}/requirements.txt
+  - cd ${BACKEND_DIR}
+  - mkdir -p test-reports
+  - pytest --junitxml=test-reports/junit.xml
+  - ls -la test-reports/
+
   artifacts:
     when: always
     paths:
@@ -84,28 +78,26 @@ deploy_staging:
     - docker
   environment:
     name: staging
-    url: http://82.202.139.13:8081
+    url: http://$DEPLOY_HOST:8081
   before_script:
   - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
   - eval $(ssh-agent -s)
   - echo "$DEPLOY_KEY" | ssh-add -
   - mkdir -p ~/.ssh
   - chmod 700 ~/.ssh
-  - ssh-keyscan 82.202.139.13 >> ~/.ssh/known_hosts
+  - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
   - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deploying backend to staging..."
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${STAGING_DIR}/backend/
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${STAGING_DIR}/frontend/
-    - ssh $DEPLOY_USER@82.202.139.13 "
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:${STAGING_DIR}/backend/
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:${STAGING_DIR}/frontend/
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "
         cd ${STAGING_DIR}/backend &&
-        sudo apt-get update &&
-        sudo apt-get install -y python3 python3-venv python3-pip &&
-        python3 -m venv venv &&
         source venv/bin/activate &&
+        pip install --upgrade pip
         pip install -r requirements.txt &&
-        gunicorn -b 0.0.0.0:8081 todoback.wsgi:application --daemon &&
         sudo ln -sf /etc/nginx/sites-available/todo-staging.conf /etc/nginx/sites-enabled/ &&
+        sudo systemctl daemon-reload &&
         sudo systemctl enable todo-staging &&
         sudo systemctl start todo-staging &&
         sudo systemctl restart nginx
@@ -121,7 +113,7 @@ deploy_production:
   when: manual
   environment:
     name: production
-    url: http://82.202.139.13
+    url: http://$DEPLOY_HOST
 
   before_script:
     - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y && apt-get install -y rsync)'
@@ -129,19 +121,17 @@ deploy_production:
     - echo "$DEPLOY_KEY" | ssh-add -
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - ssh-keyscan 82.202.139.13 >> ~/.ssh/known_hosts
+    - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
     - echo "Deploying to production..."
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/backend/
-    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@82.202.139.13:${PRODUCTION_DIR}/frontend/
-    - ssh $DEPLOY_USER@82.202.139.13 "
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${BACKEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:${PRODUCTION_DIR}/backend/
+    - rsync -avz -e "ssh -o StrictHostKeyChecking=no" ${FRONTEND_DIR}/ $DEPLOY_USER@$DEPLOY_HOST:${PRODUCTION_DIR}/frontend/
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "
       cd ${PRODUCTION_DIR}/backend &&
-      sudo apt-get update &&
-      sudo apt-get install -y python3 python3-venv python3-pip &&
-      python3 -m venv venv &&
       source venv/bin/activate &&
-      sudo pip install -r requirements.txt &&
+      pip install --upgrade pip
+      pip install -r requirements.txt &&
       sudo ln -sf /etc/nginx/sites-available/todo-prod.conf /etc/nginx/sites-enabled/ &&
       sudo systemctl stop todo-staging &&
       sudo systemctl enable todo-prod &&
