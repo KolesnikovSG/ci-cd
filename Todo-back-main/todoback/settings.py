@@ -15,9 +15,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'tyhfnc-ik2678jsn-9-8765hlvnaufnc-ik2678jsn-9-8765hlvnau'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['213.171.25.115']
+ALLOWED_HOSTS = ['82.202.139.79', 'localhost']
+
+CSRF_TRUSTED_ORIGINS = ['http://82.202.139.79']
+
+STATIC_URL = '/staticfiles/'
+
+CSRF_TRUSTED_ORIGINS = ['http://82.202.139.79', 'https://82.202.139.79']
+
+STATIC_ROOT = '/opt/Todo-back-main/staticfiles'
+
+USE_X_FORWARDED_HOST = True
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+STATICFILES_DIRS = []
 
 # Application definition
 
@@ -45,7 +59,9 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    'http://82.202.139.79',
     'http://127.0.0.1:5500',
+    'http://localhost:5500', 
     'https://t3.academy.dunice-testing.com'
 ]
 
@@ -75,11 +91,11 @@ WSGI_APPLICATION = 'todoback.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'todo_db',
-        'USER': 'todo_user',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432', 
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
@@ -117,9 +133,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+

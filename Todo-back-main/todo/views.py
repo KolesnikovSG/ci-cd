@@ -54,4 +54,8 @@ class TodoDetail(APIView):
         task = get_object_or_404(Todo, pk=pk)
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
+        
+class CompleteAll(APIView):
+    def patch(self, request):
+        Todo.objects.all().update(is_completed=request.data.get('is_completed', False))
+        return Response(status=status.HTTP_200_OK)

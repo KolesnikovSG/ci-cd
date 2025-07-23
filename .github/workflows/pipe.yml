@@ -1,0 +1,147 @@
+name: todo_app_pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      working-directory: ./Todo-back-main
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt pytest pytest-django psycopg2-binary
+        
+    - name: Collect static files
+      working-directory: ./Todo-back-main
+      run: |
+        python manage.py collectstatic --noinput
+        
+    - name: Create virtual environment archive
+      run: |
+        python -m venv venv
+        ./venv/bin/pip install -r Todo-back-main/requirements.txt
+        tar czf venv.tar.gz venv/
+        
+    - name: Save artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-artifacts
+        path: |
+          Todo-back-main/
+          venv.tar.gz
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+  
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: app-artifacts
+        path: .
+        
+    - name: Restore virtual environment
+      run: |
+        tar xzf venv.tar.gz
+        rm venv.tar.gz
+        
+    - name: Run tests
+      working-directory: ./Todo-back-main
+      env:
+        DB_HOST: postgres
+        DB_PORT: 5432
+        DB_NAME: test_db
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DJANGO_SETTINGS_MODULE: todoback.test_settings
+        PATH: ${{ github.workspace }}/venv/bin:$PATH
+      run: |
+        python manage.py test todo.tests
+
+  deploy:
+    needs: [build, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: app-artifacts
+        path: .
+        
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+  
+    - name: Setup SSH connection
+      run: |
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+  
+    - name: Prepare remote directories
+      run: |
+        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+          set -ex
+          sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main /opt/venv
+          sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/Todo-*
+          sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/venv
+        "
+  
+    - name: Upload application files
+      run: |
+        rsync -avz -e ssh Todo-back-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-back-main/
+        
+        rsync -avz -e ssh Todo-front-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-front-main/
+        
+        scp venv.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/
+  
+    - name: Finalize deployment
+      run: |
+        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+          set -ex
+          sudo tar xzf /opt/venv.tar.gz -C /opt/
+          rm /opt/venv.tar.gz
+
+          cd /opt/Todo-back-main
+          source /opt/venv/bin/activate
+          python3 manage.py migrate
+          python3 manage.py collectstatic --noinput
+          
+          sudo cp /opt/Todo-back-main/todo.service /etc/systemd/system/
+          sudo systemctl daemon-reload
+          sudo systemctl enable todo.service
+          sudo systemctl restart todo.service
+        "
+
