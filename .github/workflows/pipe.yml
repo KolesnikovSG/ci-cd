@@ -1,4 +1,4 @@
-name: My-pipeline
+name: todo_app_pipeline
 
 on:
   push:
@@ -41,7 +41,6 @@ jobs:
         name: app-artifacts
         path: |
           Todo-back-main/
-          Todo-front-main/
           venv.tar.gz
 
   test:
@@ -77,7 +76,7 @@ jobs:
     - name: Run tests
       working-directory: ./Todo-back-main
       env:
-        DB_HOST: localhost
+        DB_HOST: postgres
         DB_PORT: 5432
         DB_NAME: test_db
         DB_USER: postgres
@@ -113,7 +112,7 @@ jobs:
   
     - name: Prepare remote directories
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
           set -ex
           sudo mkdir -p /opt/Todo-back-main /opt/Todo-front-main /opt/venv
           sudo chown -R ${{ secrets.VPS_USER }}:${{ secrets.VPS_USER }} /opt/Todo-*
@@ -122,17 +121,15 @@ jobs:
   
     - name: Upload application files
       run: |
-        rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
-          Todo-back-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-back-main/
+        rsync -avz -e ssh Todo-back-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-back-main/
         
-        rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
-          Todo-front-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-front-main/
+        rsync -avz -e ssh Todo-front-main/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/Todo-front-main/
         
-        scp -o StrictHostKeyChecking=no venv.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/
+        scp venv.tar.gz ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/
   
     - name: Finalize deployment
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
           set -ex
           sudo tar xzf /opt/venv.tar.gz -C /opt/
           rm /opt/venv.tar.gz
